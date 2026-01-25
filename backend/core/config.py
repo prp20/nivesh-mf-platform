@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     database_url: str = "sqlite:///./local.db"
-    app_name: str = "Navya MF Analytics"
+    app_name: str = "Nivesh MF Analytics"
     debug: bool = True
 
     class Config:
