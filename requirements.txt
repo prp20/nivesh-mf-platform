@@ -1,0 +1,68 @@
+# ---------------------------
+# Core Backend (FastAPI)
+# ---------------------------
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# ---------------------------
+# Database & ORM
+# ---------------------------
+sqlalchemy
+psycopg[binary]
+alembic
+
+# SQLite is part of stdlib (no package needed)
+
+# ---------------------------
+# Data Processing & Analytics
+# ---------------------------
+pandas
+numpy
+scipy
+statsmodels       # Alpha, Beta, R², regression
+scikit-learn # Optional (normalization, clustering)
+
+# ---------------------------
+# Time Series & Finance Utils
+# ---------------------------
+python-dateutil
+pytz
+
+# ---------------------------
+# HTTP & External APIs (NAV Fetch)
+# ---------------------------
+httpx
+requests
+
+# ---------------------------
+# Frontend (Streamlit)
+# ---------------------------
+streamlit
+plotly           # Interactive charts
+altair             # Lightweight visualizations
+
+# ---------------------------
+# Agentic AI Layer
+# ---------------------------
+openai          # Or compatible LLM provider
+langchain
+langchain-community
+
+# ---------------------------
+# Caching & Performance
+# ---------------------------
+cachetools
+
+# ---------------------------
+# Configuration & Utilities
+# ---------------------------
+python-dotenv
+loguru             # Structured logging
+
+# ---------------------------
+# Testing & Quality (Dev Only)
+# ---------------------------
+pytest
+pytest-asyncio
