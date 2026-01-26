@@ -4,8 +4,12 @@ from backend.models.nav_data import NavData
 from backend.models.mutual_fund import MutualFund
 
 
-def ingest_nav_for_fund(fund: MutualFund, db: Session) -> int:
+def ingest_nav_for_fund(fund, db):
+    print(f"\n--- FUND: {fund.fund_name} | scheme={fund.scheme_code}")
+
     navs = fetch_nav_history(fund.scheme_code)
+    print(f"Fetched {len(navs)} NAV records from MFAPI")
+
     inserted = 0
 
     for item in navs:
@@ -25,6 +29,7 @@ def ingest_nav_for_fund(fund: MutualFund, db: Session) -> int:
             inserted += 1
 
     db.commit()
+    print(f"Inserted {inserted} rows")
     return inserted
 
 
