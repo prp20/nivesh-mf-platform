@@ -25,11 +25,13 @@ class MutualFund(Base):
 
     aum = Column(Numeric(20, 2), nullable=True)
     ter = Column(Numeric(5, 2), nullable=True)
+    exit_load = Column(Numeric(5, 2), nullable=True)
+    stamp_duty = Column(Numeric(5, 2), nullable=True)
+    fund_house = Column(String(255), nullable=True)
 
     launch_date = Column(Date, nullable=True)
 
-    # Relationships
-    navs = relationship("NavData", back_populates="fund", cascade="all, delete-orphan")
+    # Relationships (navs removed - it's in TimescaleDB)
     managers = relationship(
         "FundManager",
         secondary="fund_manager_mapping",

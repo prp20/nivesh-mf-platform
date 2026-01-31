@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, Date, Numeric, UniqueConstraint, Index
-from .base import Base
+from .base import TimeSeriesBase
 
 
-class BenchmarkNav(Base):
+class BenchmarkNav(TimeSeriesBase):
+    """Time-series data stored in TimescaleDB"""
     __tablename__ = "benchmark_nav"
 
     id = Column(Integer, primary_key=True)
