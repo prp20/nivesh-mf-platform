@@ -22,3 +22,4 @@ def fetch_nav_history(scheme_code: str) -> list[dict]:
         )
 
     return nav_list
+s
