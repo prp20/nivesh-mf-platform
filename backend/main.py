@@ -12,6 +12,7 @@ from backend.api.v1.metrics import router as metrics_router
 from backend.api.v1.compare import router as compare_router
 from backend.api.v1.recommend import router as recommend_router
 from backend.api.v1.metrics_read import router as metrics_read_router
+from backend.api.v1.sync import router as sync_router
 
 app = FastAPI(title="Nivesh MF Analytics")
 
@@ -28,6 +29,7 @@ app.include_router(metrics_router, prefix="/api/v1", tags=["Metrics"])
 app.include_router(compare_router, prefix="/api/v1", tags=["Compare"])
 app.include_router(recommend_router, prefix="/api/v1", tags=["Recommendation"])
 app.include_router(metrics_read_router, prefix="/api/v1", tags=["Metrics"])
+app.include_router(sync_router, prefix="/api/v1/sync", tags=["Data Sync"])
 
 
 @app.get("/api/v1/health", tags=["Health"])

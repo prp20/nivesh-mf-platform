@@ -4,26 +4,32 @@ from backend.models.mutual_fund import MutualFund
 
 
 def compute_score(metrics, risk_profile: str) -> float:
+    # Convert Decimal values to float to avoid type mixing errors
+    def to_float(val):
+        if val is None:
+            return 0.0
+        return float(val)
+    
     score = 0.0
 
     # Positive contributors
-    score += (metrics.alpha or 0) * 25
-    score += (metrics.sortino_ratio or 0) * 20
-    score += (metrics.sharpe_ratio or 0) * 15
-    score += (metrics.r_squared or 0) * 10
-    score += (metrics.upside_capture or 0) * 10
+    score += to_float(metrics.alpha) * 25
+    score += to_float(metrics.sortino_ratio) * 20
+    score += to_float(metrics.sharpe_ratio) * 15
+    score += to_float(metrics.r_squared) * 10
+    score += to_float(metrics.upside_capture) * 10
 
     # Negative contributors
-    score -= abs(metrics.downside_capture or 0) * 10
-    score -= (metrics.std_deviation or 0) * 5
-    score -= abs(metrics.beta or 0) * 5
+    score -= abs(to_float(metrics.downside_capture)) * 10
+    score -= to_float(metrics.std_deviation) * 5
+    score -= abs(to_float(metrics.beta)) * 5
 
     # Risk profile bias
     if risk_profile == "low":
-        score -= (metrics.std_deviation or 0) * 10
-        score -= abs(metrics.beta or 0) * 10
+        score -= to_float(metrics.std_deviation) * 10
+        score -= abs(to_float(metrics.beta)) * 10
     elif risk_profile == "high":
-        score += (metrics.alpha or 0) * 10
+        score += to_float(metrics.alpha) * 10
 
     return round(score, 4)
 
@@ -55,11 +61,11 @@ def recommend_funds(
                 "benchmark": fund.benchmark,
                 "score": score,
                 "key_metrics": {
-                    "alpha": metrics.alpha,
-                    "sharpe": metrics.sharpe_ratio,
-                    "sortino": metrics.sortino_ratio,
-                    "beta": metrics.beta,
-                    "std_dev": metrics.std_deviation,
+                    "alpha": float(metrics.alpha) if metrics.alpha else None,
+                    "sharpe": float(metrics.sharpe_ratio) if metrics.sharpe_ratio else None,
+                    "sortino": float(metrics.sortino_ratio) if metrics.sortino_ratio else None,
+                    "beta": float(metrics.beta) if metrics.beta else None,
+                    "std_dev": float(metrics.std_deviation) if metrics.std_deviation else None,
                 },
                 "explanation": _explain(metrics, risk_profile),
             }
@@ -70,15 +76,20 @@ def recommend_funds(
 
 
 def _explain(metrics, risk_profile: str) -> str:
+    def to_float(val):
+        if val is None:
+            return 0.0
+        return float(val)
+    
     reasons = []
 
-    if metrics.alpha and metrics.alpha > 0:
+    if to_float(metrics.alpha) > 0:
         reasons.append("positive alpha indicates manager skill")
 
-    if metrics.sortino_ratio and metrics.sortino_ratio > 1:
+    if to_float(metrics.sortino_ratio) > 1:
         reasons.append("strong downside risk-adjusted returns")
 
-    if metrics.beta and metrics.beta < 1:
+    if to_float(metrics.beta) < 1 and to_float(metrics.beta) > 0:
         reasons.append("lower volatility than benchmark")
 
     if risk_profile == "low":
