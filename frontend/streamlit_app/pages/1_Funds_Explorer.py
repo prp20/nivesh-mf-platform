@@ -11,11 +11,14 @@ st.dataframe(
     df[
         [
             "fund_name",
+            "fund_house",
             "category",
             "sub_category",
             "benchmark",
             "aum",
             "ter",
+            "exit_load",
+            "stamp_duty",
             "launch_date",
         ]
     ],
