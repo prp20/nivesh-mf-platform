@@ -1,9 +1,24 @@
-def safe_metric(metrics: dict, key: str, decimals: int = 2):
+def safe_metric(metrics: dict, key: str, suffix: str = "", decimals: int = 2):
+    """
+    Safely retrieve and format metric values.
+    
+    Args:
+        metrics: Metrics dictionary
+        key: Key to retrieve from metrics
+        suffix: Optional suffix (e.g., "%", "x")
+        decimals: Number of decimal places to round to
+    
+    Returns:
+        Formatted metric value or "N/A"
+    """
     value = metrics.get(key)
     if value is None:
         return "N/A"
     try:
-        return round(float(value), decimals)
+        formatted_value = round(float(value), decimals)
+        if suffix:
+            return f"{formatted_value}{suffix}"
+        return formatted_value
     except Exception:
         return "N/A"
     
