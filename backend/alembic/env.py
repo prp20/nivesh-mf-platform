@@ -23,13 +23,15 @@ config = context.config
 from backend.db.session import engine
 from backend.models.base import Base
 
-# Import ALL models so Alembic detects them
-from backend.models.mutual_fund import MutualFund
-from backend.models.fund_manager import FundManager
-from backend.models.fund_manager_mapping import FundManagerMapping
-from backend.models.nav_data import NavData
-from backend.models.fund_metrics_snapshot import FundMetricsSnapshot
-
+# FORCE MODEL REGISTRATION
+from backend.models import (
+    mutual_fund,
+    fund_manager,
+    fund_manager_mapping,
+    nav_data,
+    benchmark_nav,
+    fund_metrics_snapshot,
+)
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
