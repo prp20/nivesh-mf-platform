@@ -2,17 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 import numpy as np
 from fastapi.encoders import jsonable_encoder
+import logging
 
 from backend.db.session import get_db
 from backend.models.fund_metrics_snapshot import FundMetricsSnapshot
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 
 from decimal import Decimal
-import numpy as np
 
 def sanitize(v):
+    """Safely convert values to JSON-serializable format."""
     if v is None:
         return None
 
@@ -25,12 +27,16 @@ def sanitize(v):
     if isinstance(v, (float, np.floating)):
         if np.isnan(v) or np.isinf(v):
             return None
-        return v
+        return float(v)
 
     return v
 
 @router.get("/{fund_id}")
-def get_latest_metrics(fund_id: int, db: Session = Depends(get_db)):
+async def get_latest_metrics(fund_id: int, db: Session = Depends(get_db)):
+    """
+    Get the latest computed metrics for a fund.
+    Returns 404 if no metrics have been computed yet.
+    """
     snapshot = (
         db.query(FundMetricsSnapshot)
         .filter(FundMetricsSnapshot.fund_id == fund_id)
@@ -39,7 +45,8 @@ def get_latest_metrics(fund_id: int, db: Session = Depends(get_db)):
     )
 
     if not snapshot:
-        raise HTTPException(status_code=404, detail="Metrics not available")
+        logger.info(f"No metrics found for fund {fund_id}")
+        raise HTTPException(status_code=404, detail="Metrics not found")
 
     response = {
         "fund_id": snapshot.fund_id,
@@ -56,4 +63,5 @@ def get_latest_metrics(fund_id: int, db: Session = Depends(get_db)):
         "rolling_return_3y": sanitize(snapshot.rolling_return_3y),
     }
 
+    logger.debug(f"Retrieved metrics for fund {fund_id}: {response['as_of_date']}")
     return jsonable_encoder(response)

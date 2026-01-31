@@ -11,6 +11,9 @@ class FundBase(BaseModel):
     benchmark: Optional[str] = None
     aum: Optional[float] = None
     ter: Optional[float] = None
+    exit_load: Optional[float] = None
+    stamp_duty: Optional[float] = None
+    fund_house: Optional[str] = None
     launch_date: Optional[date] = None
 
 
@@ -25,6 +28,9 @@ class FundUpdate(BaseModel):
     benchmark: Optional[str] = None
     aum: Optional[float] = None
     ter: Optional[float] = None
+    exit_load: Optional[float] = None
+    stamp_duty: Optional[float] = None
+    fund_house: Optional[str] = None
     launch_date: Optional[date] = None
 
 

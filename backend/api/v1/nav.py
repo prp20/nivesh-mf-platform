@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from backend.db.session import get_db
+from backend.db.session import get_db, get_timescaledb
 from analytics.nav_ingestion import (
     ingest_nav_for_all_funds,
     ingest_nav_for_fund,
 )
 from backend.models.mutual_fund import MutualFund
 from backend.models.nav_data import NavData
+from backend.api.schemas.nav import NavDataResponse
 
 router = APIRouter()
 
@@ -37,8 +38,8 @@ def fetch_historical_nav(fund_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/nav/{fund_id}")
-def get_nav_history(fund_id: int, db: Session = Depends(get_db)):
+@router.get("/nav/{fund_id}", response_model=list[NavDataResponse])
+def get_nav_history(fund_id: int, db: Session = Depends(get_timescaledb)):
     return (
         db.query(NavData)
         .filter(NavData.fund_id == fund_id)
