@@ -7,6 +7,7 @@ from backend.models.nav_data import NavData
 from backend.models.benchmark_nav import BenchmarkNav
 from backend.models.fund_metrics_snapshot import FundMetricsSnapshot
 from backend.models.mutual_fund import MutualFund
+from backend.db.session import PostgresSessionLocal, TimeScaleDBSessionLocal
 
 # Suppress numpy RuntimeWarnings for NaN operations (we handle them explicitly)
 warnings.filterwarnings('ignore', category=RuntimeWarning)
@@ -26,15 +27,19 @@ def sanitize(value):
             return None
     return value
 
-def compute_metrics(fund_id: int, db: Session) -> FundMetricsSnapshot:
-    # ---------------- Load Fund ----------------
-    fund = db.get(MutualFund, fund_id)
+def compute_metrics(fund_id: int, db_postgres: Session, db_timescale: Session = None) -> dict:
+    # If TimescaleDB session not provided, create one
+    if db_timescale is None:
+        db_timescale = TimeScaleDBSessionLocal()
+    
+    # Load Fund from PostgreSQL
+    fund = db_postgres.get(MutualFund, fund_id)
     if not fund:
         raise ValueError("Fund not found")
 
-    # ---------------- Load Fund NAVs ----------------
+    # Load Fund NAVs from TimescaleDB
     navs = (
-        db.query(NavData)
+        db_timescale.query(NavData)
         .filter(NavData.fund_id == fund_id)
         .order_by(NavData.nav_date)
         .all()
@@ -53,9 +58,9 @@ def compute_metrics(fund_id: int, db: Session) -> FundMetricsSnapshot:
 
     fund_ret = df["returns"]
 
-    # ---------------- Load Benchmark NAVs ----------------
+    # Load Benchmark NAVs from TimescaleDB (not PostgreSQL!)
     benchmark_navs = (
-        db.query(BenchmarkNav)
+        db_timescale.query(BenchmarkNav)
         .filter(BenchmarkNav.benchmark_name == fund.benchmark)
         .order_by(BenchmarkNav.nav_date)
         .all()
@@ -88,28 +93,29 @@ def compute_metrics(fund_id: int, db: Session) -> FundMetricsSnapshot:
         if not np.isnan(std_val) and not np.isinf(std_val):
             std_deviation = std_val * np.sqrt(TRADING_DAYS)
 
+    # Compute risk-adjusted metrics for all fund types
     sharpe_ratio = None
-    if fund.category.lower() == "Equity":
-        std = np.std(fund_ret)
-        if not np.isnan(std) and std > EPSILON:
-            mean_ret = np.mean(fund_ret)
-            if not np.isnan(mean_ret):
-                sharpe_ratio = (mean_ret - rf_daily) / std
-        else:
-            sharpe_ratio = None
-
-    downside = fund_ret[fund_ret < 0]
-    sortino_ratio = None
-    if fund.category.lower() == "Equity" and len(downside) > 0:
-        downside_std = np.std(downside)
+    std = np.std(fund_ret)
+    if not np.isnan(std) and std > EPSILON:
         mean_ret = np.mean(fund_ret)
-        if (not np.isnan(downside_std) and not np.isnan(mean_ret) and 
-            downside_std > EPSILON):
-            sortino_ratio = ((mean_ret - rf_daily) * TRADING_DAYS) / (
-                downside_std * np.sqrt(TRADING_DAYS)
-            )
-        else:
-            sortino_ratio = None
+        if not np.isnan(mean_ret):
+            # Annualize: (mean_ret - rf) / std, then multiply by sqrt(252)
+            sharpe_ratio = ((mean_ret - rf_daily) / std) * np.sqrt(TRADING_DAYS)
+            if np.isnan(sharpe_ratio):
+                sharpe_ratio = None
+
+    sortino_ratio = None
+    # Downside deviation: std of negative returns only
+    downside = fund_ret[fund_ret < 0]
+    if len(downside) > 0:
+        # Downside deviation (volatility of losses)
+        downside_deviation = np.sqrt(np.mean(downside ** 2))
+        mean_ret = np.mean(fund_ret)
+        if not np.isnan(downside_deviation) and downside_deviation > EPSILON:
+            # Sortino = (mean - rf) / downside_dev, then annualize
+            sortino_ratio = ((mean_ret - rf_daily) / downside_deviation) * np.sqrt(TRADING_DAYS)
+            if np.isnan(sortino_ratio):
+                sortino_ratio = None
     # ---------------- Benchmark-relative Metrics ----------------
     beta = None
     alpha = None
@@ -128,10 +134,11 @@ def compute_metrics(fund_id: int, db: Session) -> FundMetricsSnapshot:
             mean_fund = np.mean(fund_ret)
             mean_bm = np.mean(bm_ret)
             if not np.isnan(mean_fund) and not np.isnan(mean_bm):
-                alpha = (
-                    (mean_fund * TRADING_DAYS)
-                    - beta * (mean_bm * TRADING_DAYS)
-                )
+                # Alpha = (fund_return - rf) - beta * (benchmark_return - rf)
+                # Annualized
+                fund_excess = (mean_fund - rf_daily) * TRADING_DAYS
+                bm_excess = (mean_bm - rf_daily) * TRADING_DAYS
+                alpha = fund_excess - (beta * bm_excess)
                 if np.isnan(alpha):
                     alpha = None
 
