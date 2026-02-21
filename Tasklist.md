@@ -7,12 +7,12 @@
 | Create a CSV with data to be pushed to database| Completed |
 | Create models to store basic Mf data | Completed |
 | Enable CRUD end points for /funds route | Completed |
-| Enable CRUD end points for /nav route | Not Started |
-| Enable CRUD end points for /metrics route | Not Started |
-| Enable CRUD end points for /benchmarks route | Not Started |
-| Create a Test Script to check if all the routes are working | Not Started |
-| Create a script to populate the database with MF data | Not Started |
-| Create a script to populate the database with NAV data | Not Started |
+| Enable CRUD end points for /nav route | Completed |
+| Enable CRUD end points for /metrics route | Completed |
+| Enable CRUD end points for /benchmarks route | Completed |
+| Create a Test Script to check if all the routes are working | Completed |
+| Create a script to populate the database with MF data | Completed |
+| Create a script to populate the database with NAV data | Completed |
 | Create a script to populate the database with benchmark data | Not Started |
 | Populate the database with benchmark data | Not Started |
 | Compute Metrics | Not Started |

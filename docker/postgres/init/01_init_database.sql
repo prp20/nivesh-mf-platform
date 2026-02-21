@@ -156,6 +156,7 @@ CREATE TABLE mutual_funds.benchmark_master (
     benchmark_code VARCHAR(50) PRIMARY KEY,
     benchmark_name VARCHAR(200) NOT NULL,
     benchmark_type VARCHAR(100),
+    ticker VARCHAR(50) NOT NULL,
     asset_class VARCHAR(50),
     
     -- Status

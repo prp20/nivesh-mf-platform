@@ -71,6 +71,7 @@ class BenchmarkMaster(Base):
     
     benchmark_code = Column(String(50), primary_key=True)
     benchmark_name = Column(String(200), nullable=False)
+    ticker = Column(String(50),nullable=False)
     benchmark_type = Column(String(100))
     asset_class = Column(String(50))
     is_active = Column(Boolean, default=True)

@@ -1,4 +1,5 @@
 from sqlalchemy import select, insert, text, update, delete, cast, Date
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.sql import literal
 from .models import (
     FundMaster, FundMetrics, FundNavHistory, 
@@ -14,6 +15,7 @@ from .schemas import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import date as date_type
+from datetime import datetime
 
 # ============================================================================
 # FUND MASTER CRUD OPERATIONS
@@ -153,10 +155,72 @@ async def get_fund_nav_by_date_range(session: AsyncSession, scheme_code: str, st
 async def bulk_insert_fund_nav_history(session: AsyncSession, rows: list[dict]):
     if not rows:
         return True
-    stmt = insert(FundNavHistory)
-    await session.execute(stmt, rows)
+    # Use PostgreSQL ON CONFLICT for upsert
+    stmt = pg_insert(FundNavHistory).values(rows)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=['scheme_code', 'nav_date'],
+        set_=dict(nav_value=stmt.excluded.nav_value)
+    )
+    await session.execute(stmt)
     await session.commit()
     return True
+
+
+async def bulk_insert_fund_nav_from_dict(session: AsyncSession, scheme_code: str, nav_data: dict):
+    """
+    Insert NAV data from dictionary format: {"YYYY-MM-DD": nav_value, ...}
+    Converts date strings from YYYY-MM-DD format to date objects.
+    Filters out records with invalid NAV values (zero or negative).
+    Ensures no duplicates: for each scheme_code + nav_date combination, only one entry is kept.
+    Compatible with TimescaleDB using PostgreSQL's ON CONFLICT DO UPDATE.
+    """
+    if not nav_data:
+        return 0
+    
+    rows = []
+    seen_dates = set()  # Track dates to avoid duplicates within the same bulk insert
+    skipped_count = 0
+    
+    for date_str, nav_value in nav_data.items():
+        try:
+            # Parse date from YYYY-MM-DD format
+            nav_date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+            nav_float = float(nav_value)
+            
+            # Skip records with invalid NAV values (must be positive)
+            if nav_float <= 0:
+                skipped_count += 1
+                continue
+            
+            # Skip duplicate dates within the same bulk insert (keep first occurrence)
+            date_key = (scheme_code, nav_date_obj)
+            if date_key in seen_dates:
+                skipped_count += 1
+                continue
+            
+            seen_dates.add(date_key)
+            rows.append({
+                "scheme_code": scheme_code,
+                "nav_date": nav_date_obj,
+                "nav_value": nav_float
+            })
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid date format '{date_str}' (expected YYYY-MM-DD) or NAV value '{nav_value}': {str(e)}")
+    
+    # Only insert if we have valid rows
+    if not rows:
+        return 0
+    
+    # Use PostgreSQL ON CONFLICT for upsert with TimescaleDB compatibility
+    # This ensures that for each scheme_code + nav_date combination, only one entry exists
+    stmt = pg_insert(FundNavHistory).values(rows)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=['scheme_code', 'nav_date'],
+        set_=dict(nav_value=stmt.excluded.nav_value)
+    )
+    await session.execute(stmt)
+    await session.commit()
+    return len(rows)
 
 
 async def delete_fund_nav_history(session: AsyncSession, scheme_code: str, nav_date: Optional[str] = None):
@@ -264,8 +328,13 @@ async def get_benchmark_nav_by_date_range(session: AsyncSession, benchmark_code:
 async def bulk_insert_benchmark_nav_history(session: AsyncSession, rows: list[dict]):
     if not rows:
         return True
-    stmt = insert(BenchmarkNavHistory)
-    await session.execute(stmt, rows)
+    # Use PostgreSQL ON CONFLICT for upsert
+    stmt = pg_insert(BenchmarkNavHistory).values(rows)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=['benchmark_code', 'nav_date'],
+        set_=dict(index_value=stmt.excluded.index_value)
+    )
+    await session.execute(stmt)
     await session.commit()
     return True
 

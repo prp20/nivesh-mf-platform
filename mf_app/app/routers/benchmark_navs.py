@@ -1,6 +1,7 @@
 from typing import List, Optional
 import csv
 import io
+from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,12 +77,17 @@ async def upload_benchmark_nav_csv(
     reader = csv.DictReader(io.StringIO(s))
     rows = []
     for r in reader:
-        r_parsed = {
-            "benchmark_code": r["benchmark_code"],
-            "nav_date": r["nav_date"],
-            "index_value": float(r["index_value"]),
-        }
-        rows.append(r_parsed)
+        try:
+            # Parse nav_date string to date object
+            nav_date_obj = date_type.fromisoformat(r["nav_date"])
+            r_parsed = {
+                "benchmark_code": r["benchmark_code"],
+                "nav_date": nav_date_obj,
+                "index_value": float(r["index_value"]),
+            }
+            rows.append(r_parsed)
+        except (ValueError, KeyError) as e:
+            raise HTTPException(status_code=400, detail=f"Invalid CSV format: {str(e)}")
     
     await crud.bulk_insert_benchmark_nav_history(session, rows)
     return {"inserted": len(rows), "message": f"Successfully inserted {len(rows)} benchmark NAV records"}

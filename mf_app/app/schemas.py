@@ -98,6 +98,12 @@ class FundNavHistoryCreate(BaseModel):
     nav_value: Decimal
 
 
+class FundNavHistoryBulkCreate(BaseModel):
+    """Schema for bulk NAV insertion with dictionary format"""
+    scheme_code: str
+    nav_data: dict  # Format: {"26-10-2021": 81.084, "25-10-2021": 79.604, ...}
+
+
 class FundNavHistoryRead(FundNavHistoryCreate):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -110,6 +116,7 @@ class FundNavHistoryRead(FundNavHistoryCreate):
 class BenchmarkMasterCreate(BaseModel):
     benchmark_code: str
     benchmark_name: str
+    ticker: str
     benchmark_type: Optional[str] = None
     asset_class: Optional[str] = None
     is_active: bool = True
@@ -124,6 +131,7 @@ class BenchmarkMasterRead(BenchmarkMasterCreate):
 class BenchmarkMasterUpdate(BaseModel):
     benchmark_name: Optional[str] = None
     benchmark_type: Optional[str] = None
+    ticker: Optional[str] = None
     asset_class: Optional[str] = None
     is_active: Optional[bool] = None
 
