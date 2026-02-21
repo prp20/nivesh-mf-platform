@@ -1,4 +1,4 @@
-scheme_code,scheme_name,amc,plan,risk_profile,created_at,started_date,eq_or_dt,type_of_mf
+scheme_code,scheme_name,amc_name,plan_type,risk_profile,created_at,inception_date,scheme_category,scheme_subcategory, is_active, benchmark_index_code
 119550,Aditya Birla Sun Life Banking & PSU Debt Fund- Direct Plan-Growth,Aditya Birla Sun Life Mutual Fund,Direct,Very High,2026-02-09 09:23:27.556760+00:00,02-01-2013,Debt Scheme,Banking and PSU Fund
 120438,Axis Banking & PSU Debt Fund - Direct Plan - Growth Option,Axis Mutual Fund,Direct,Very High,2026-02-09 09:23:28.046142+00:00,02-01-2013,Debt Scheme,Banking and PSU Fund
 152162,Bajaj Finserv Banking and PSU Fund-Direct Plan- Growth,Bajaj Finserv Mutual Fund,Direct,Very High,2026-02-09 09:23:28.397393+00:00,15-11-2023,Debt Scheme,Banking and PSU Fund

@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
@@ -9,44 +9,74 @@ from .. import crud, schemas
 router = APIRouter(prefix="/funds", tags=["funds"])
 
 
-@router.post("/", response_model=schemas.FundRead, status_code=status.HTTP_201_CREATED)
-async def create_fund(fund: schemas.FundCreate, session: AsyncSession = Depends(get_session)):
-    existing = await crud.get_fund_by_code(session, fund.scheme_code)
+# ============================================================================
+# FUND MASTER ENDPOINTS
+# ============================================================================
+
+@router.post("/", response_model=schemas.FundMasterRead, status_code=status.HTTP_201_CREATED)
+async def create_fund(fund: schemas.FundMasterCreate, session: AsyncSession = Depends(get_session)):
+    """Create a new mutual fund master record"""
+    existing = await crud.get_fund_master_by_code(session, fund.scheme_code)
     if existing:
-        raise HTTPException(status_code=400, detail="Fund exists")
-    row = await crud.create_fund(session, fund)
-    return row[0]
+        raise HTTPException(status_code=400, detail=f"Fund with scheme_code {fund.scheme_code} already exists")
+    return await crud.create_fund_master(session, fund)
 
 
-@router.get("/", response_model=List[schemas.FundRead])
-async def list_funds(session: AsyncSession = Depends(get_session)):
-    rows = await crud.get_all_funds(session)
-    return rows
+@router.get("/", response_model=List[schemas.FundMasterRead])
+async def list_funds(
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    session: AsyncSession = Depends(get_session)
+):
+    """List all funds with optional filtering"""
+    return await crud.get_all_fund_masters(session, is_active=is_active)
 
 
-@router.get("/{scheme_code}", response_model=schemas.FundRead)
+@router.get("/{scheme_code}", response_model=schemas.FundMasterRead)
 async def read_fund(scheme_code: str, session: AsyncSession = Depends(get_session)):
-    fund = await crud.get_fund_by_code(session, scheme_code)
+    """Get a specific fund by scheme code"""
+    fund = await crud.get_fund_master_by_code(session, scheme_code)
     if not fund:
-        raise HTTPException(status_code=404, detail="Fund not found")
+        raise HTTPException(status_code=404, detail=f"Fund with scheme_code {scheme_code} not found")
     return fund
 
 
-@router.put("/{scheme_code}", response_model=schemas.FundRead)
-async def update_fund(scheme_code: str, fund_in: schemas.FundCreate, session: AsyncSession = Depends(get_session)):
-    existing = await crud.get_fund_by_code(session, scheme_code)
+@router.put("/{scheme_code}", response_model=schemas.FundMasterRead)
+async def update_fund(
+    scheme_code: str,
+    fund_in: schemas.FundMasterUpdate,
+    session: AsyncSession = Depends(get_session)
+):
+    """Update a fund master record"""
+    existing = await crud.get_fund_master_by_code(session, scheme_code)
     if not existing:
-        raise HTTPException(status_code=404, detail="Fund not found")
-    res = await crud.update_fund_by_code(session, scheme_code, fund_in)
-    if not res:
+        raise HTTPException(status_code=404, detail=f"Fund with scheme_code {scheme_code} not found")
+    result = await crud.update_fund_master(session, scheme_code, fund_in)
+    if not result:
         raise HTTPException(status_code=500, detail="Update failed")
-    return res[0]
+    return result
+
+
+@router.patch("/{scheme_code}", response_model=schemas.FundMasterRead)
+async def patch_fund(
+    scheme_code: str,
+    fund_in: schemas.FundMasterUpdate,
+    session: AsyncSession = Depends(get_session)
+):
+    """Partially update a fund master record"""
+    existing = await crud.get_fund_master_by_code(session, scheme_code)
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Fund with scheme_code {scheme_code} not found")
+    result = await crud.update_fund_master(session, scheme_code, fund_in)
+    if not result:
+        raise HTTPException(status_code=500, detail="Update failed")
+    return result
 
 
 @router.delete("/{scheme_code}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_fund(scheme_code: str, session: AsyncSession = Depends(get_session)):
-    existing = await crud.get_fund_by_code(session, scheme_code)
+    """Delete a fund master record"""
+    existing = await crud.get_fund_master_by_code(session, scheme_code)
     if not existing:
-        raise HTTPException(status_code=404, detail="Fund not found")
-    await crud.delete_fund_by_code(session, scheme_code)
+        raise HTTPException(status_code=404, detail=f"Fund with scheme_code {scheme_code} not found")
+    await crud.delete_fund_master(session, scheme_code)
     return None
