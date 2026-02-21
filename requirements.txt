@@ -9,3 +9,5 @@ mftool
 ipykernel
 deprecated
 tqdm
+python-dotenv
+psycopg2-binary

@@ -1,22 +1,57 @@
-version: "3.8"
+version: '3.8'
 
 services:
+  # TimescaleDB (PostgreSQL with TimescaleDB extension)
   timescaledb:
-    image: timescale/timescaledb:latest-pg14
-    container_name: timescaledb
+    image: timescale/timescaledb:latest-pg16
+    container_name: mutual_fund_timescaledb
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=mf_user
-      - POSTGRES_PASSWORD=mf_pass
-      - POSTGRES_DB=mf_db
+      POSTGRES_DB: mutual_fund_db
+      POSTGRES_USER: mf_admin
+      POSTGRES_PASSWORD: mf_secure_password_123
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+      # TimescaleDB specific settings
+      TIMESCALEDB_TELEMETRY: 'off'
     ports:
       - "5432:5432"
     volumes:
-      - timescale-data:/var/lib/postgresql/data
+      # Persistent data storage
+      - ./docker/postgres/data:/var/lib/postgresql/data
+      # Initialization scripts
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mf_user"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U mf_admin -d mutual_fund_db"]
+      interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - mutual_fund_network
+
+  # pgAdmin for database management (optional but recommended)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mutual_fund_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@mutualfund.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    networks:
+      - mutual_fund_network
+
+networks:
+  mutual_fund_network:
+    driver: bridge
 
 volumes:
-  timescale-data:
+  postgres_data:
+  pgadmin_data:
