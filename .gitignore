@@ -217,4 +217,4 @@ __marimo__/
 
 # Docker volumes
 docker/postgres/data/
-docker/pgadmin/data/mf_app/data/*.csv
+docker/pgadmin/data/mf_app/data/nav_data.csv
