@@ -10,6 +10,26 @@ import yfinance as yf
 url = "http://localhost:8000"
 input_format = "%d-%m-%Y"
 output_format = "%Y-%m-%d"
+ticker_list = [{"benchmark_code": "Nifty 50", "ticker":"^NSEI"},
+                   {"benchmark_code": "Nifty 100", "ticker":"^CNX100"},
+                   {"benchmark_code": "Nifty 200", "ticker":"^CNX200"},
+                   {"benchmark_code": "Nifty 500", "ticker":"^CRSLDX"},
+                   {"benchmark_code": "Nifty Midcap 150", "ticker":"NIFTYMIDCAP150.NS"},
+                   {"benchmark_code": "Nifty Smallcap 250", "ticker":"NIFTYSMLCAP250.NS"},
+                   {"benchmark_code": "Nifty Bank", "ticker":"^NSEBANK"},
+                   {"benchmark_code": "Nifty IT", "ticker":"^CNXIT"},
+    ]
+
+def get_ticker_data(ticker):
+    tick = yf.Ticker(ticker)
+    data = tick.history(period='max')
+    if data is not None:
+        data.reset_index(inplace=True)
+        data['date'] = pd.to_datetime(data['Date'])
+        data['date'] = data['date'].dt.strftime(output_format)
+        data['nav'] = data['Close'].astype('float')
+        data = data.filter(['date','nav'])
+    return data
 
 def populate_mf_data():
     master_funds_list = pd.read_csv("equity_only.csv")
@@ -77,29 +97,31 @@ def populate_nav_data():
     return
 
 def populate_benchmarks():
-    ticker_list = [{"benchmark_code": "Nifty 50", "ticker":"^NSEI"},
-                   {"benchmark_code": "Nifty 100", "ticker":"^CNX100"},
-                   {"benchmark_code": "Nifty 200", "ticker":"^CNX200"},
-                   {"benchmark_code": "Nifty 500", "ticker":"^CRSLDX"},
-                   {"benchmark_code": "Nifty Midcap 150", "ticker":"^CNXMIDCAP"},
-                   {"benchmark_code": "Nifty Smallcap 250", "ticker":"^CNXSC"},
-                   {"benchmark_code": "Nifty Bank", "ticker":"^NSEBANK"},
-                   {"benchmark_code": "Nifty IT", "ticker":"^CNXIT"},
-    ]
+    for val in ticker_list:
+        code = val['benchmark_code'].replace(" ", "_").lower()
+        first_payload = {
+            "benchmark_code": code,
+            "benchmark_name": val['benchmark_code'],
+            "ticker": val['ticker']
+        }
+        first_res = requests.post(f"{url}/benchmarks/", json=first_payload)
+        if first_res.status_code == 200 or first_res.status_code == 201:
+                print(f"Benchmark {val['benchmark_code']} created/updated successfully.")
+                nav_data = get_ticker_data(val['ticker'])
+                nav_data = {row['date']: float(row['nav']) for _, row in nav_data.iterrows()}
+                second_payload = {
+                    "benchmark_code": code,
+                    "nav_data": nav_data
+                }
+                second_res = requests.post(f"{url}/benchmark-navs/bulk", json=second_payload)
+                if second_res.status_code == 200 or second_res.status_code == 201:
+                    print(f"Benchmark {val['benchmark_code']} nav data created/updated successfully.")
+                else:
+                    print(f"Benchmark {val['benchmark_code']} nav failed with response code {second_res.status_code}")
+        else:
+            print(f"Request failed with status code: {first_res.status_code}. \n Error: {first_res.text}")
+            
 
-
-    data = yf.download(
-        ticker,
-        start="2006-04-03",
-        end="2025-01-01",
-        interval="1d",
-        auto_adjust=True
-    )
-
-
-    data.drop(['High', 'Low', 'Open', 'Volume'], axis=1, inplace=True)
-    data.reset_index(inplace=True)
-    data.columns
-
-populate_mf_data()
-populate_nav_data()
+# populate_mf_data()
+# populate_nav_data()
+populate_benchmarks()

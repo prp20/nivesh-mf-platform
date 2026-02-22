@@ -339,6 +339,63 @@ async def bulk_insert_benchmark_nav_history(session: AsyncSession, rows: list[di
     return True
 
 
+async def bulk_insert_benchmark_nav_from_dict(session: AsyncSession, benchmark_code: str, nav_data: dict):
+    """
+    Insert benchmark NAV data from dictionary format: {"YYYY-MM-DD": index_value, ...}
+    Converts date strings from YYYY-MM-DD format to date objects.
+    Filters out records with invalid index values (zero or negative).
+    Ensures no duplicates: for each benchmark_code + nav_date combination, only one entry is kept.
+    Compatible with TimescaleDB using PostgreSQL's ON CONFLICT DO UPDATE.
+    """
+    if not nav_data:
+        return 0
+    
+    rows = []
+    seen_dates = set()  # Track dates to avoid duplicates within the same bulk insert
+    skipped_count = 0
+    
+    for date_str, index_value in nav_data.items():
+        try:
+            # Parse date from YYYY-MM-DD format
+            nav_date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+            index_float = float(index_value)
+            
+            # Skip records with invalid index values (must be positive)
+            if index_float <= 0:
+                skipped_count += 1
+                continue
+            
+            # Skip duplicate dates within the same bulk insert (keep first occurrence)
+            date_key = (benchmark_code, nav_date_obj)
+            if date_key in seen_dates:
+                skipped_count += 1
+                continue
+            
+            seen_dates.add(date_key)
+            rows.append({
+                "benchmark_code": benchmark_code,
+                "nav_date": nav_date_obj,
+                "index_value": index_float
+            })
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid date format '{date_str}' (expected YYYY-MM-DD) or index value '{index_value}': {str(e)}")
+    
+    # Only insert if we have valid rows
+    if not rows:
+        return 0
+    
+    # Use PostgreSQL ON CONFLICT for upsert with TimescaleDB compatibility
+    # This ensures that for each benchmark_code + nav_date combination, only one entry exists
+    stmt = pg_insert(BenchmarkNavHistory).values(rows)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=['benchmark_code', 'nav_date'],
+        set_=dict(index_value=stmt.excluded.index_value)
+    )
+    await session.execute(stmt)
+    await session.commit()
+    return len(rows)
+
+
 async def delete_benchmark_nav_history(session: AsyncSession, benchmark_code: str, nav_date: Optional[str] = None):
     q = delete(BenchmarkNavHistory).where(BenchmarkNavHistory.benchmark_code == benchmark_code)
     if nav_date:

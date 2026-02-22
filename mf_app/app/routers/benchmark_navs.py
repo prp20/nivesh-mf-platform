@@ -16,6 +16,88 @@ router = APIRouter(prefix="/benchmark-navs", tags=["benchmark-navs"])
 # BENCHMARK NAV HISTORY ENDPOINTS
 # ============================================================================
 
+@router.post("/bulk", status_code=status.HTTP_201_CREATED)
+async def create_benchmark_nav_bulk(
+    bulk_nav: schemas.BenchmarkNavHistoryBulkCreate,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Create multiple benchmark NAV records from dictionary format.
+    Expected format: {"benchmark_code": "NIFTY50", "nav_data": {"26-10-2021": 81.084, "25-10-2021": 79.604, ...}}
+    Dates should be in YYYY-MM-DD format.
+    """
+    # Verify benchmark exists
+    benchmark = await crud.get_benchmark_master(session, bulk_nav.benchmark_code)
+    if not benchmark:
+        raise HTTPException(status_code=404, detail=f"Benchmark {bulk_nav.benchmark_code} not found")
+    
+    try:
+        inserted_count = await crud.bulk_insert_benchmark_nav_from_dict(session, bulk_nav.benchmark_code, bulk_nav.nav_data)
+        return {
+            "benchmark_code": bulk_nav.benchmark_code,
+            "inserted": inserted_count,
+            "message": f"Successfully inserted {inserted_count} benchmark NAV records for {bulk_nav.benchmark_code}"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
+
+
+@router.put("/bulk/{benchmark_code}", status_code=status.HTTP_200_OK)
+async def update_benchmark_nav_bulk(
+    benchmark_code: str,
+    bulk_nav: schemas.BenchmarkNavHistoryBulkUpdate,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Update or append benchmark NAV records from dictionary format.
+    Allows adding new dates or updating index values for existing dates.
+    Expected format: {"nav_data": {"2021-10-26": 81.084, "2021-10-25": 79.604, ...}}
+    Dates should be in YYYY-MM-DD format.
+    """
+    # Verify benchmark exists
+    benchmark = await crud.get_benchmark_master(session, benchmark_code)
+    if not benchmark:
+        raise HTTPException(status_code=404, detail=f"Benchmark {benchmark_code} not found")
+    
+    try:
+        inserted_count = await crud.bulk_insert_benchmark_nav_from_dict(session, benchmark_code, bulk_nav.nav_data)
+        return {
+            "benchmark_code": benchmark_code,
+            "inserted": inserted_count,
+            "message": f"Successfully inserted/updated {inserted_count} benchmark NAV records for {benchmark_code}"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
+
+
+@router.patch("/bulk/{benchmark_code}", status_code=status.HTTP_200_OK)
+async def patch_benchmark_nav_bulk(
+    benchmark_code: str,
+    bulk_nav: schemas.BenchmarkNavHistoryBulkUpdate,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Patch (partially update) benchmark NAV records from dictionary format.
+    Same behavior as PUT - allows adding new dates or updating index values for existing dates.
+    Expected format: {"nav_data": {"2021-10-26": 81.084, "2021-10-25": 79.604, ...}}
+    Dates should be in YYYY-MM-DD format.
+    """
+    # Verify benchmark exists
+    benchmark = await crud.get_benchmark_master(session, benchmark_code)
+    if not benchmark:
+        raise HTTPException(status_code=404, detail=f"Benchmark {benchmark_code} not found")
+    
+    try:
+        inserted_count = await crud.bulk_insert_benchmark_nav_from_dict(session, benchmark_code, bulk_nav.nav_data)
+        return {
+            "benchmark_code": benchmark_code,
+            "inserted": inserted_count,
+            "message": f"Successfully inserted/updated {inserted_count} benchmark NAV records for {benchmark_code}"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
+
+
 @router.post("/", response_model=schemas.BenchmarkNavHistoryRead, status_code=status.HTTP_201_CREATED)
 async def create_benchmark_nav(
     nav: schemas.BenchmarkNavHistoryCreate,

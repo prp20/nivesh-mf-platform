@@ -53,6 +53,62 @@ async def create_fund_nav_bulk(
         raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
 
 
+@router.put("/bulk/{scheme_code}", status_code=status.HTTP_200_OK)
+async def update_fund_nav_bulk(
+    scheme_code: str,
+    bulk_nav: schemas.FundNavHistoryBulkUpdate,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Update or append NAV records from dictionary format.
+    Allows adding new dates or updating NAV values for existing dates.
+    Expected format: {"nav_data": {"2021-10-26": 81.084, "2021-10-25": 79.604, ...}}
+    Dates should be in YYYY-MM-DD format.
+    """
+    # Verify fund exists
+    fund = await crud.get_fund_master_by_code(session, scheme_code)
+    if not fund:
+        raise HTTPException(status_code=404, detail=f"Fund with scheme_code {scheme_code} not found")
+    
+    try:
+        inserted_count = await crud.bulk_insert_fund_nav_from_dict(session, scheme_code, bulk_nav.nav_data)
+        return {
+            "scheme_code": scheme_code,
+            "inserted": inserted_count,
+            "message": f"Successfully inserted/updated {inserted_count} NAV records for {scheme_code}"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
+
+
+@router.patch("/bulk/{scheme_code}", status_code=status.HTTP_200_OK)
+async def patch_fund_nav_bulk(
+    scheme_code: str,
+    bulk_nav: schemas.FundNavHistoryBulkUpdate,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Patch (partially update) NAV records from dictionary format.
+    Same behavior as PUT - allows adding new dates or updating NAV values for existing dates.
+    Expected format: {"nav_data": {"2021-10-26": 81.084, "2021-10-25": 79.604, ...}}
+    Dates should be in YYYY-MM-DD format.
+    """
+    # Verify fund exists
+    fund = await crud.get_fund_master_by_code(session, scheme_code)
+    if not fund:
+        raise HTTPException(status_code=404, detail=f"Fund with scheme_code {scheme_code} not found")
+    
+    try:
+        inserted_count = await crud.bulk_insert_fund_nav_from_dict(session, scheme_code, bulk_nav.nav_data)
+        return {
+            "scheme_code": scheme_code,
+            "inserted": inserted_count,
+            "message": f"Successfully inserted/updated {inserted_count} NAV records for {scheme_code}"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
+
+
 @router.get("/{scheme_code}", response_model=List[schemas.FundNavHistoryRead])
 async def get_fund_navs(
     scheme_code: str,

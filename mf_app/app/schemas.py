@@ -101,7 +101,12 @@ class FundNavHistoryCreate(BaseModel):
 class FundNavHistoryBulkCreate(BaseModel):
     """Schema for bulk NAV insertion with dictionary format"""
     scheme_code: str
-    nav_data: dict  # Format: {"26-10-2021": 81.084, "25-10-2021": 79.604, ...}
+    nav_data: dict  # Format: {"YYYY-MM-DD": nav_value, ...}
+
+
+class FundNavHistoryBulkUpdate(BaseModel):
+    """Schema for bulk NAV update/patch - only requires nav_data (scheme_code in URL)"""
+    nav_data: dict  # Format: {"YYYY-MM-DD": nav_value, ...}
 
 
 class FundNavHistoryRead(FundNavHistoryCreate):
@@ -144,6 +149,17 @@ class BenchmarkNavHistoryCreate(BaseModel):
     benchmark_code: str
     nav_date: date
     index_value: Decimal
+
+
+class BenchmarkNavHistoryBulkCreate(BaseModel):
+    """Schema for bulk benchmark NAV insertion with dictionary format"""
+    benchmark_code: str
+    nav_data: dict  # Format: {"YYYY-MM-DD": index_value, ...}
+
+
+class BenchmarkNavHistoryBulkUpdate(BaseModel):
+    """Schema for bulk benchmark NAV update/patch - only requires nav_data (benchmark_code in URL)"""
+    nav_data: dict  # Format: {"YYYY-MM-DD": index_value, ...}
 
 
 class BenchmarkNavHistoryRead(BenchmarkNavHistoryCreate):

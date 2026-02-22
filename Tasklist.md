@@ -13,8 +13,10 @@
 | Create a Test Script to check if all the routes are working | Completed |
 | Create a script to populate the database with MF data | Completed |
 | Create a script to populate the database with NAV data | Completed |
-| Create a script to populate the database with benchmark data | Not Started |
-| Populate the database with benchmark data | Not Started |
+| Create a script to populate the database with benchmark data | Completed |
+| Added Patch/Put Support to timeseries Nav data | Completed |
+| Populate the database with benchmark data | Completed |
+| Assign Right Metrics | Not Started |
 | Compute Metrics | Not Started |
 | Support Bulk Upload| Not Started |
 | Enable a job to fetch data periodically| Not started |
